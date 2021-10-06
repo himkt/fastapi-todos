@@ -25,6 +25,6 @@ services:
       fastapi-todos-mysql:
         condition: service_healthy
     environment:
-      - MYSQL_HOST=mysql
+      - MYSQL_HOST=fastapi-todos-mysql
     ports:
       - 3000:3000
