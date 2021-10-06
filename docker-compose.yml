@@ -1,7 +1,7 @@
 version: '3.0'
 
 services:
-  mysql:
+  fastapi-todos-mysql:
     image: mysql:5.7
     platform: linux/x86_64
     container_name: mysql_host
@@ -17,12 +17,12 @@ services:
     healthcheck:
       test: mysqladmin ping -h 127.0.0.1 -u $$MYSQL_USER --password=$$MYSQL_PASSWORD
 
-  app:
+  fastapi-todos-app:
     build:
       context: .
       dockerfile: Dockerfile
     depends_on:
-      mysql:
+      fastapi-todos-mysql:
         condition: service_healthy
     environment:
       - MYSQL_HOST=mysql

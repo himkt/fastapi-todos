@@ -10,23 +10,23 @@ WORKDIR /work
 COPY pyproject.toml ./
 COPY poetry.lock    ./
 COPY poetry.toml    ./
-COPY fastapi_todos  ./fastapi_todos
 
-RUN poetry install --no-dev
+RUN poetry export -f requirements.txt -o requirements.txt
 
 
 FROM python:3.8.12-slim-buster as runner
-
-COPY --from=builder /usr/include/mariadb /usr/include/mariadb
-COPY --from=builder /usr/lib             /usr/lib
+COPY --from=builder  /usr/lib     /usr/lib
+COPY --from=builder  /usr/bin     /usr/bin
+COPY --from=builder  /usr/include /usr/include
 
 WORKDIR /work
+COPY --from=builder /work/requirements.txt ./requirements.txt
+COPY ./fastapi_todos ./fastapi_todos
 
-COPY --from=builder /work/.venv ./.venv
-COPY --from=builder /work/fastapi_todos ./fastapi_todos
+RUN pip3 install -r requirements.txt
 
 CMD [ \
-     ".venv/bin/gunicorn", \
+     "gunicorn", \
      "-k", "uvicorn.workers.UvicornWorker", \
      "-b", ":3000", \
      "fastapi_todos.app:create_app()" \
