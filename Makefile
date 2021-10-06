@@ -37,3 +37,6 @@ clean-build:
 	rm -rf dist/
 	rm -rf *.egg-info/
 	rm -rf pip-wheel-metadata/
+
+test-container:
+	docker-compose run -v $(PWD)/tests:/work/tests fastapi-todos-app python -m pytest
