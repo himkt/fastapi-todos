@@ -11,7 +11,7 @@ COPY pyproject.toml ./
 COPY poetry.lock    ./
 COPY poetry.toml    ./
 
-RUN poetry export -f requirements.txt -o requirements.txt
+RUN poetry export -f requirements.txt -o requirements.txt --dev
 
 
 FROM python:3.8.12-slim-buster as runner
