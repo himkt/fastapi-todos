@@ -1,8 +1,8 @@
 from typing import AsyncGenerator
 
-from sqlmodel import SQLModel
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.orm import sessionmaker
+from sqlmodel import SQLModel
 
 from fastapi_todos.config import ServerConfiguration
 
@@ -22,9 +22,8 @@ async def get_session() -> AsyncGenerator[AsyncSession, None]:
 
 settings = ServerConfiguration()
 engine = create_async_engine(
-    f"mysql+aiomysql://docker:docker@{settings.MYSQL_HOST}:3306"
-    "/fastapi_todos",
-    future=True
+    f"mysql+aiomysql://docker:docker@{settings.MYSQL_HOST}:3306/fastapi_todos",
+    future=True,
 )
 async_session_maker = sessionmaker(
     engine,
