@@ -11,6 +11,6 @@ def create_app() -> FastAPI:
     # https://sqlmodel.tiangolo.com/tutorial/fastapi/simple-hero-api/#create-database-and-tables-on-startup
     @app.on_event("startup")
     async def startup() -> None:
-        init_database()
+        await init_database()
 
     return app
