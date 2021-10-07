@@ -22,8 +22,10 @@ COPY --from=builder  /usr/include /usr/include
 WORKDIR /work
 COPY --from=builder /work/requirements.txt ./requirements.txt
 COPY ./fastapi_todos ./fastapi_todos
+COPY ./pyproject.toml ./pyproject.toml
 
 RUN pip3 install -r requirements.txt
+RUN pip3 install .
 
 CMD [ \
      "gunicorn", \
