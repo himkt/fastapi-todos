@@ -10,11 +10,13 @@ mysqlclient = "^2.0.3"
 sqlmodel = "^0.0.4"
 gunicorn = "^20.1.0"
 fastapi = {version = "^0.68.1", extras = ["all"]}
+aiomysql = "^0.0.21"
 
 [tool.poetry.dev-dependencies]
 python-language-server = "^0.36.2"
 pysen = {version = "^0.9.1", extras = ["lint"]}
 pytest = "^6.2.4"
+aiosqlite = "^0.17.0"
 
 [tool.pysen]
 version = "0.9"

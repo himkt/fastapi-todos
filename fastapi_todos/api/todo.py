@@ -5,7 +5,8 @@ import fastapi
 from fastapi.params import Depends, Header
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
-from sqlmodel import Session, select
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlmodel import select
 
 from fastapi_todos.database import get_session
 from fastapi_todos.model.todo import Todo
@@ -18,12 +19,12 @@ async def create(
     todo: Todo,
     # https://github.com/tiangolo/fastapi/issues/1522
     # https://github.com/tiangolo/fastapi/issues/219
-    session: Session = Depends(get_session),  # type: ignore  # noqa: B008
+    session: AsyncSession = Depends(get_session),  # type: ignore  # noqa: B008
 ) -> JSONResponse:
 
     session.add(todo)
-    session.commit()
-    session.refresh(todo)
+    await session.commit()
+    await session.refresh(todo)
 
     return JSONResponse(
         status_code=200,
@@ -37,12 +38,12 @@ async def create(
 @router.get("/todo/show/{id}")
 async def show(
     id: int,
-    session: Session = Depends(get_session),  # type: ignore  # noqa: B008
+    session: AsyncSession = Depends(get_session),  # type: ignore  # noqa: B008
 ) -> Union[JSONResponse, Todo]:
 
     # https://sqlmodel.tiangolo.com/tutorial/select/
     statement = select(Todo).where(Todo.id == id)
-    response = session.exec(statement)
+    response = await session.execute(statement)
 
     # https://sqlmodel.tiangolo.com/tutorial/one/
     record = response.first()
@@ -65,13 +66,13 @@ class UpdateTodo(BaseModel):
 async def update(
     id: int,
     update_param: UpdateTodo,
-    session: Session = Depends(get_session),  # type: ignore  # noqa: B008
+    session: AsyncSession = Depends(get_session),  # type: ignore  # noqa: B008
 ) -> Todo:
 
     statement = select(Todo).where(Todo.id == id)
-    response = session.exec(statement)
+    response = await session.execute(statement)
 
-    todo = response.first()
+    todo = response.fetchone()
     if todo is None:
         return JSONResponse(
             status_code=404,
@@ -88,15 +89,15 @@ async def update(
         todo.created_at = update_param.created_at
 
     session.add(todo)
-    session.commit()
-    session.refresh(todo)
+    await session.commit()
+    await session.refresh(todo)
 
     return todo
 
 
 @router.get("/todo/view", response_model=List[Todo])
 async def view(
-    session: Session = Depends(get_session),  # type: ignore  # noqa: B008
+    session: AsyncSession = Depends(get_session),  # type: ignore  # noqa: B008
     # https://fastapi.tiangolo.com/tutorial/header-params/
     created_at: str = Header(None),  # type: ignore  # noqa: B008
 ) -> List[Todo]:
@@ -106,5 +107,6 @@ async def view(
         _created_at = datetime.strptime(created_at, "%Y-%m-%d %H:%M:%S")
         statement = statement.where(Todo.created_at >= _created_at)
 
-    response = session.exec(statement)
-    return response.fetchall()
+    response = await session.execute(statement)
+    records = response.fetchall()
+    return records

@@ -1,9 +1,12 @@
 from datetime import datetime, timedelta
-from typing import Iterable
+from typing import AsyncGenerator
 
 from fastapi.testclient import TestClient
 from pytest import fixture
-from sqlmodel import Session, SQLModel, create_engine
+import pytest
+from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
+from sqlalchemy.orm import sessionmaker
+from sqlmodel import SQLModel
 from sqlmodel.pool import StaticPool
 
 from fastapi_todos.app import create_app
@@ -15,19 +18,27 @@ from fastapi_todos.database import get_session
 
 # fixture: https://docs.pytest.org/en/stable/fixture.html
 @fixture(name="session")
-def session_fixture() -> Iterable[Session]:
-    engine = create_engine(
-        "sqlite://",
+async def session_fixture() -> AsyncGenerator[AsyncSession, None]:
+    engine = create_async_engine(
+        "sqlite+aiosqlite://",
         connect_args={"check_same_thread": False},
         poolclass=StaticPool,
     )
 
-    SQLModel.metadata.create_all(engine)
-    with Session(engine) as session:
+    session_maker = sessionmaker(
+        engine,
+        class_=AsyncSession,
+        expire_on_commit=False,
+    )
+
+    async with engine.begin() as conn:
+        await conn.run_sync(SQLModel.metadata.create_all)
+
+    async with session_maker() as session:
         yield session
 
 
-def test_create(session: Session) -> None:
+def test_create(session: AsyncSession) -> None:
     app = create_app()
 
     # dependency injection in fastapi:
@@ -50,7 +61,7 @@ def test_create(session: Session) -> None:
     assert response.json()[0]["title"] == title
 
 
-def test_update(session: Session) -> None:
+def test_update(session: AsyncSession) -> None:
     app = create_app()
 
     app.dependency_overrides[get_session] = lambda: session
@@ -73,7 +84,7 @@ def test_update(session: Session) -> None:
     assert response.json()["finished"]
 
 
-def test_update_when_record_is_not_found(session: Session) -> None:
+def test_update_when_record_is_not_found(session: AsyncSession) -> None:
     app = create_app()
 
     app.dependency_overrides[get_session] = lambda: session
@@ -83,7 +94,7 @@ def test_update_when_record_is_not_found(session: Session) -> None:
     assert response.status_code == 404
 
 
-def test_view(session: Session) -> None:
+def test_view(session: AsyncSession) -> None:
     app = create_app()
 
     app.dependency_overrides[get_session] = lambda: session
@@ -98,7 +109,7 @@ def test_view(session: Session) -> None:
     assert len(response.json()) == 3
 
 
-def test_view_with_created_at(session: Session) -> None:
+def test_view_with_created_at(session: AsyncSession) -> None:
     app = create_app()
 
     app.dependency_overrides[get_session] = lambda: session
@@ -127,7 +138,7 @@ def test_view_with_created_at(session: Session) -> None:
     assert len(response.json()) == 2
 
 
-def test_show(session: Session) -> None:
+def test_show(session: AsyncSession) -> None:
     app = create_app()
 
     app.dependency_overrides[get_session] = lambda: session
@@ -143,7 +154,7 @@ def test_show(session: Session) -> None:
     assert response.json()["title"] == title
 
 
-def test_show_when_record_is_not_found(session: Session) -> None:
+def test_show_when_record_is_not_found(session: AsyncSession) -> None:
     app = create_app()
 
     app.dependency_overrides[get_session] = lambda: session

@@ -1,23 +1,35 @@
-from typing import Iterable
+from typing import AsyncGenerator
 
-from sqlmodel import Session, SQLModel, create_engine
+from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
+from sqlalchemy.orm import sessionmaker
+from sqlmodel import SQLModel
 
 from fastapi_todos.config import ServerConfiguration
 
 
 # https://sqlmodel.tiangolo.com/tutorial/create-db-and-table/#last-review
-def init_database() -> None:
-    SQLModel.metadata.drop_all(bind=engine)
-    SQLModel.metadata.create_all(bind=engine)
+# https://testdriven.io/blog/fastapi-sqlmodel/
+async def init_database() -> None:
+    async with engine.begin() as conn:
+        await conn.run_sync(SQLModel.metadata.drop_all)
+        await conn.run_sync(SQLModel.metadata.create_all)
 
 
-def get_session() -> Iterable[Session]:
-    with Session(engine) as session:
+async def get_session() -> AsyncGenerator[AsyncSession, None]:
+    async with async_session_maker() as session:
         yield session
 
 
 settings = ServerConfiguration()
-engine = create_engine(f"mysql://docker:docker@{settings.MYSQL_HOST}:3306/fastapi_todos")  # noqa
+engine = create_async_engine(
+    f"mysql+aiomysql://docker:docker@{settings.MYSQL_HOST}:3306/fastapi_todos",
+    future=True,
+)
+async_session_maker = sessionmaker(
+    engine,
+    class_=AsyncSession,
+    expire_on_commit=False,
+)
 
 
 # https://sqlmodel.tiangolo.com/tutorial/create-db-and-table/
